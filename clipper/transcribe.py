@@ -1,7 +1,8 @@
 """Transcription via faster-whisper (optional dependency). Output: list of segments."""
-import json, sys
+import json, os, sys
 
-def transcribe(path, model="small", out=None):
+def transcribe(path, model=None, out=None):
+    model = model or os.environ.get("WHISPER_MODEL", "small")
     try:
         from faster_whisper import WhisperModel
     except ImportError:

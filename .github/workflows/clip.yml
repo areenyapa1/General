@@ -1,0 +1,37 @@
+name: Make clips
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "YouTube / Twitch / Kick link"
+        required: true
+      creator:
+        description: "Creator name (for credit + file names)"
+        required: true
+      top:
+        description: "How many clips"
+        default: "6"
+      layout:
+        description: "stack (blurred bg) or fill (crop)"
+        default: "stack"
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - run: pip install -q -r requirements.txt
+      - name: Download, transcribe, pick moments, render
+        env:
+          WHISPER_MODEL: base
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m clipper.cli run "${{ inputs.url }}" --streamer "${{ inputs.creator }}" --top "${{ inputs.top }}" --layout "${{ inputs.layout }}" --out clips
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clips-${{ inputs.creator }}-${{ github.run_number }}
+          path: clips/
+          retention-days: 14
