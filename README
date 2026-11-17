@@ -1,1 +1,9 @@
-## this repo is just a test ##
+# GTA 6 Clipper (free, Stage 1)
+
+Setup (your own PC, needs Python 3.10+ and ffmpeg):
+    pip install yt-dlp faster-whisper
+Run on any YouTube/Twitch/Kick link you have permission to clip:
+    python -m clipper.cli run "https://youtube.com/watch?v=..." --streamer CreatorName --top 8
+Output: clips/CreatorName_01.mp4 ... + clips/manifest.json (titles, timestamps). Upload the clips by hand
+to TikTok / Shorts / Reels / X. Tests: python -m pytest tests
+See PLAN.md and the staged roadmap (prove it earns first, automate later).

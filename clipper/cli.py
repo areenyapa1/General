@@ -1,12 +1,15 @@
 """Usage:
-  python -m clipper.cli run VIDEO --streamer NAME [--transcript t.json] [--top 8] [--layout stack|fill] [--out clips/]
+  python -m clipper.cli run VIDEO_OR_URL --streamer NAME [--transcript t.json] [--top 8] [--layout stack|fill] [--out clips/]
 Writes clips + manifest.json (title, source credit, timestamps) for your review queue."""
 import argparse, json, os
 from .transcribe import transcribe
 from .select import candidates, rerank_with_claude
 from .render import render
+from .fetch import fetch
 
 def run(a):
+    if a.video.startswith('http'):
+        a.video = fetch(a.video)
     segs = json.load(open(a.transcript)) if a.transcript else transcribe(a.video, out=a.video + ".transcript.json")
     picks = rerank_with_claude(candidates(segs), top=a.top)
     words = [w for s in segs for w in s.get("words", [])]

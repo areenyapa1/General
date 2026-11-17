@@ -5,8 +5,16 @@ HYPE = re.compile(r"\b(no way|what the|bro|oh my god|omg|insane|crazy|clip (that
                   r"let'?s go|holy|wait|are you serious|got me|dead|ruined|rockstar|gta|"
                   r"wasted|busted|wanted|helicopter|heist|chase|cop|police|funniest)\b", re.I)
 
+# Marketing layer: GTA 6 topics people are searching/sharing right now, plus hook phrasing.
+TREND = re.compile(r"\b(gta ?(6|vi)|vice city|leonida|lucia|jason|trailer|easter egg|leak|map|physics|"
+                   r"glitch|first (hour|time)|reaction|secret|hidden|never seen|you won'?t believe)\b", re.I)
+HOOK = re.compile(r"^(wait|no way|look|watch|did you see|nobody|this is|you (guys )?need|here'?s)", re.I)
+
 def _score(text, dur, loudness=0.0):
     s = len(HYPE.findall(text)) * 2.0
+    s += len(TREND.findall(text)) * 1.5
+    if HOOK.search(text.strip()[:40]):
+        s += 3                      # strong first-2-seconds hook
     s += text.count("!") * 0.5 + text.count("?") * 0.3
     s += loudness
     if dur < 12 or dur > 75:        # shorts sweet spot 15-60s
