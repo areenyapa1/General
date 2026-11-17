@@ -19,4 +19,15 @@ def test_no_overlap():
 def test_ass_written(tmp_path):
     p = tmp_path / "x.ass"
     make_ass([{"w": "hi", "start": 10, "end": 10.5}, {"w": "there", "start": 10.5, "end": 11}], 9.0, str(p))
-    assert "HI THERE" in p.read_text() and "0:00:01.00" in p.read_text()
+    t = p.read_text()
+    assert "HI" in t and "THERE" in t and "0:00:01.00" in t
+
+def test_virality_and_reasons():
+    c = candidates(SEGS)[0]
+    assert 0 < c["virality"] <= 100 and "strong hook" in c["why"]
+
+def test_word_highlight_and_hook(tmp_path):
+    p = tmp_path / "y.ass"
+    make_ass([{"w": "no", "start": 1, "end": 1.3}, {"w": "way", "start": 1.3, "end": 1.6}], 0, str(p), hook="Wait for it")
+    t = p.read_text()
+    assert t.count("Dialogue: 0,") == 2 and "\\c&H00E6FF&" in t and "WAIT FOR IT" in t

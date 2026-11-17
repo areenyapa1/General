@@ -6,20 +6,21 @@ from .transcribe import transcribe
 from .select import candidates, rerank_with_claude
 from .render import render
 from .fetch import fetch
+from .audio import loudness_map
 
 def run(a):
     if a.video.startswith('http'):
         a.video = fetch(a.video)
     segs = json.load(open(a.transcript)) if a.transcript else transcribe(a.video, out=a.video + ".transcript.json")
-    picks = rerank_with_claude(candidates(segs), top=a.top)
+    picks = rerank_with_claude(candidates(segs, loudness=loudness_map(a.video)), top=a.top)
     words = [w for s in segs for w in s.get("words", [])]
     os.makedirs(a.out, exist_ok=True)
     manifest = []
     for n, c in enumerate(picks, 1):
         f = os.path.join(a.out, f"{a.streamer}_{n:02d}.mp4")
         render(a.video, c["start"], c["end"], f, words=words, layout=a.layout,
-               credit=f"via @{a.streamer}" if a.streamer else None)
-        manifest.append({"file": f, "start": c["start"], "end": c["end"], "score": c["score"],
+               credit=f"via @{a.streamer}" if a.streamer else None, hook=c.get("title"))
+        manifest.append({"file": f, "start": c["start"], "end": c["end"], "score": c["score"], "virality": c.get("virality"), "why": c.get("why"),
                          "title": c.get("title") or c["text"][:60], "source": a.streamer, "status": "review"})
     json.dump(manifest, open(os.path.join(a.out, "manifest.json"), "w"), indent=1)
     print(f"{len(manifest)} clips -> {a.out}/manifest.json")

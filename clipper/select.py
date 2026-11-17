@@ -11,15 +11,24 @@ TREND = re.compile(r"\b(gta ?(6|vi)|vice city|leonida|lucia|jason|trailer|easter
 HOOK = re.compile(r"^(wait|no way|look|watch|did you see|nobody|this is|you (guys )?need|here'?s)", re.I)
 
 def _score(text, dur, loudness=0.0):
-    s = len(HYPE.findall(text)) * 2.0
-    s += len(TREND.findall(text)) * 1.5
+    """Return (raw score, reasons). Mirrors what paid tools score: hook, emotion, trend fit, length."""
+    why = []
+    h, t = len(HYPE.findall(text)), len(TREND.findall(text))
+    s = h * 2.0 + t * 1.5
+    if h: why.append(f"{h} hype moments")
+    if t: why.append(f"trend fit x{t}")
     if HOOK.search(text.strip()[:40]):
-        s += 3                      # strong first-2-seconds hook
+        s += 3; why.append("strong hook")      # first-2-seconds hook
     s += text.count("!") * 0.5 + text.count("?") * 0.3
-    s += loudness
-    if dur < 12 or dur > 75:        # shorts sweet spot 15-60s
-        s -= 3
-    return s
+    if loudness > 0:
+        s += loudness * 2; why.append("audio spike")
+    if dur < 12 or dur > 75:                   # shorts sweet spot 15-60s
+        s -= 3; why.append("bad length")
+    return s, why
+
+def virality(score):
+    """Map raw score to a 0-100 number for easy sorting in the manifest."""
+    return max(0, min(100, round(100 * (1 - 0.85 ** max(score, 0)))))
 
 def candidates(segments, min_len=18, max_len=55, loudness=None):
     """Slide a window over transcript segments; return scored windows (no overlap)."""
@@ -30,8 +39,10 @@ def candidates(segments, min_len=18, max_len=55, loudness=None):
             end, txt = b["end"], (txt + " " + b["text"]) if b is not a else a["text"]
             dur = end - a["start"]
             if dur >= min_len:
-                ld = (loudness or {}).get(int(a["start"] // 5), 0.0)
-                wins.append({"start": a["start"], "end": end, "text": txt, "score": _score(txt, dur, ld)})
+                ld = max([(loudness or {}).get(k, 0.0) for k in range(int(a["start"] // 5), int(end // 5) + 1)] or [0])
+                sc, why = _score(txt, dur, ld)
+                wins.append({"start": a["start"], "end": end, "text": txt, "score": sc,
+                             "virality": virality(sc), "why": why})
             if dur >= max_len:
                 break
     wins.sort(key=lambda w: -w["score"])
